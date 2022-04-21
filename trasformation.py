@@ -13,15 +13,15 @@ if __name__ == '__main__':
 
     # pre-process config
     print('--> config model')
-    rknn.config(channel_mean_value='103.94 116.78 123.68 58.82',
+    rknn.config(mean_values=[[123.675, 116.28, 103.53]], std_values=[[58.395, 58.395, 58.395]],
                 reorder_channel='0 1 2') # RGB
 
 
-    # Load onnx model
+    # Load pt model
     print('--> Loading model')
-    ret = rknn.load_onnx(model='./onnx/best.onnx')
+    ret = rknn.load_pytorch(model='./best.pt', input_size_list=[[3,640,640]])
     if ret != 0:
-        print('Load onnx failed!')
+        print('Load pt failed!')
         exit(ret)
     print('done')
 
