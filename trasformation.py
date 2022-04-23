@@ -17,14 +17,17 @@ if __name__ == '__main__':
 
     # pre-process config
     print('--> config model')
-    rknn.config(mean_values=[[0, 0, 0]],
+    rknn.config(
+                batch_size=8,
+                mean_values=[[0, 0, 0]],
                 std_values=[[255, 255, 255]],
-                reorder_channel='0 1 2') # RGB
+                reorder_channel='0 1 2',
+                target_platform=None) # RGB
 
 
-    # Load pt model
+    # Load onnx model
     print('--> Loading model')
-    ret = rknn.load_pytorch(model=ONNX_MODEL, input_size_list=[[3,640,640]])
+    ret = rknn.load_onnx(model=ONNX_MODEL, outputs=['326', '371', '416'])
     if ret != 0:
         print('Load pt failed!')
         exit(ret)
