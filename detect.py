@@ -3,7 +3,7 @@ import time
 import numpy as np
 import cv2
 from rknn.api import RKNN
-from util import letterbox, process, draw
+from util import letterbox, yolov5_post_process, draw
 
 RKNN_MODEL = 'best.rknn'
 BOX_THRESH = 0.5
@@ -33,15 +33,17 @@ if __name__ == '__main__':
 
 
     # Handle input data
-    capture = cv2.VideoCapture('./data/video/') # read video
+    capture = cv2.VideoCapture('./data/video.mp4') # read video
     count = 0   # record frames
     ret, img = capture.read()  # if can read one frame, then return 1 to ret and the frame to image
 
 
     # Handle results
-    if os.path.exists(r'result.txt'):
-        os.remove(r'result.txt') # remove results
-
+    if os.path.exists(r'results.txt'):
+        os.remove(r'results.txt') # remove results
+    if os.path.exists(r'./data/detect'):
+        for f in os.listdir('./data/detect'):
+             os.remove(os.path.join('./data/detect', f))
     with open('results.txt', 'a') as f:      # put results into results.txt
         while(ret):
             img_1, ratio, (dw, dh) = letterbox(img, new_shape=(IMG_SIZE, IMG_SIZE))
@@ -53,18 +55,30 @@ if __name__ == '__main__':
             outputs = rknn.inference(inputs=[img_1])
             time2 = time.time()
             print((time2-time1)*1000)
+            
+            input0_data = outputs[0]
+            input1_data = outputs[1]
+            input2_data = outputs[2]
 
+            input0_data = input0_data.reshape([3, -1] + list(input0_data.shape[-2:]))
+            input1_data = input1_data.reshape([3, -1] + list(input1_data.shape[-2:]))
+            input2_data = input2_data.reshape([3, -1] + list(input2_data.shape[-2:]))
+
+            input_data = list()
+            input_data.append(np.transpose(input0_data, (2, 3, 0, 1)))
+            input_data.append(np.transpose(input1_data, (2, 3, 0, 1)))
+            input_data.append(np.transpose(input2_data, (2, 3, 0, 1)))
             # Handle the inferenced outputs
-            boxes, classes, scores = process(outputs)
+            boxes, classes, scores = yolov5_post_process(input_data)
 
             if boxes is not None:      # if there was boxes appearing in the img, then return the format saved to results.txt and draw the img with boxes
-                tmp = str(count) + ',' + str((time2-time1)*1000) + draw(img, boxes, scores, classes, dw, dh, ratio) + '\n'
+                tmp = str(count) + ', ' + str((time2-time1)*1000) + ', ' + draw(img_1, boxes, scores, classes, count) + '\n'
                 # format: frame_count, delay, classes, x0, y0, x1, y1
             else:
-                tmp = str(count) + ',' + str((time2-time1)*1000) + '\n'
+                tmp = str(count) + ', ' + str((time2-time1)*1000) + '\n'
 
             f.write(tmp)
-            cv2.imwrite('./result/img' + str(count) + '.jpg', img)
+            #cv2.imwrite('./data/detect/img' + str(count) + '.jpg', img_1)
 
             count += 1
             ret, img = capture.read()       # read the next frame to inference
